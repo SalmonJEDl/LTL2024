@@ -25,3 +25,6 @@ source /opt/ros/noetic/setup.bash
 
 Automatic sourcing:
 echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
+
+sudo apt-get install ros-noetic-rviz-visual-tools
+sudo apt-get install ros-noetic-moveit-visual-tools
