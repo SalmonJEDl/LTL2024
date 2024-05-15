@@ -18,16 +18,16 @@ def listen_to_optitrack():  # This function updates cube positions from OptiTrac
             process = subprocess.Popen(command, shell=True, cwd=os.path.expanduser('~/ros'), stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # Execute the command
             output, error = process.communicate(timeout=3)    # Save the data from the command, timeout after 3 seconds if no rostopic found
             output_str = output.decode("utf-8")    # Decode the rostopic message
-            output_list = output_str.split()    # Split the message to x, y, z, color
-            number_of_cubes = output_list.count("x:")
-            cube_positions.clear()
+            output_list = output_str.split()    # Split the message to list
+            number_of_cubes = output_list.count("x:")    # Number of x: in the list is the number of cubes
+            cube_positions.clear()    # Clear the previous positions to add the updated ones
             for i in range(number_of_cubes):
                 cube_coords = [float(output_list[13+i*7]), float(output_list[15+i*7]), float(output_list[17+i*7])]  # Parse the coordinates from rostopic
                 cube_positions.append(cube_coords)
-            time.sleep(1)
+            time.sleep(1)    # Update the coordinates every 1s
         except:
             print("No rostopic found!")
-            break;
+            break;    # If the rostopic is not found or is ended, stop trying to update the cube positions
 
         
         
@@ -100,19 +100,19 @@ class NumberSubmitter(QWidget):
                 label.setText("Cube {} location: {}, {}, {}".format(i+1, cube_positions[i][0], cube_positions[i][1], cube_positions[i][2]))
                 i += 1
             
-        self.timer = QTimer(self)  # Timer for updatating the coordinate labels
+        self.timer = QTimer(self)    # Timer for updatating the coordinate labels
         self.timer.timeout.connect(update_pos_labels)
-        self.timer.start(1000)  # Update every 1s
+        self.timer.start(1000)    # Update every 1s
         
         
         # Define pick buttons for each cube found in rostopic
         i = 0
-        self.pick_color_buttons = []
+        self.pick_index_buttons = []
         for cube in cube_positions:
-            pick_color_button = QPushButton("Pick cube {}".format(i+1), self)
-            pick_color_button.clicked.connect(partial(self.pick_color, i))
-            self.pick_color_buttons.append(pick_color_button)
-            self.pick_color_buttons[i].move(600, 100+40*i)
+            pick_index_button = QPushButton("Pick cube {}".format(i+1), self)
+            pick_index_button.clicked.connect(partial(self.pick_index, i))
+            self.pick_index_buttons.append(pick_index_button)
+            self.pick_index_buttons[i].move(600, 100+40*i)
             i += 1
 
         
@@ -163,7 +163,7 @@ class NumberSubmitter(QWidget):
         
         
     # Used to pick up a cube from certain coordinates
-    def pick_color(self, cube_index):
+    def pick_index(self, cube_index):
         cube = cube_positions[cube_index]
         command = "rosrun ltl_project pick _x:={} _y:={} _z:={} _reset:={} > /dev/null".format(cube[0], cube[1], cube[2], "false")
         subprocess.Popen(command, shell=True, cwd=os.path.expanduser('~/ros'))
@@ -212,15 +212,15 @@ class NumberSubmitter(QWidget):
             cube_2 = cube_positions[boxes_ticked[1]]
             pick1_x, pick1_y, pick1_z = cube_1[0], cube_1[1], cube_1[2]
             pick2_x, pick2_y, pick2_z = cube_2[0], cube_2[1], cube_2[2]
-            self.pick_color(boxes_ticked[0])    # Pick cube 1
+            self.pick_index(boxes_ticked[0])    # Pick cube 1
             time.sleep(15)  # Using timers for now since the rosnodes overlapped
             self.place_to_coords(pick1_x, pick1_y+0.1, pick1_z)     # Put cube 1 0.1m aside
             time.sleep(15)
-            self.pick_color(boxes_ticked[1])    # Pick cube 2
+            self.pick_index(boxes_ticked[1])    # Pick cube 2
             time.sleep(15)
             self.place_to_coords(pick1_x, pick1_y, pick1_z)     # Place cube 2 to cube 1's original spot
             time.sleep(15)
-            self.pick_color(boxes_ticked[0])    # Pick up cube 1 from its temporary spot
+            self.pick_index(boxes_ticked[0])    # Pick up cube 1 from its temporary spot
             time.sleep(15)
             self.place_to_coords(pick2_x, pick2_y, pick2_z)     # Place cube 1 to the original spot of cube 2
         else:
