@@ -40,8 +40,6 @@ class NumberSubmitter(QWidget):
         self.initUI()
 
     def initUI(self):
-        self.last_picked = -1
-        self.cube_positions = cube_positions.copy()
     
         self.setWindowTitle('Pick and place')
         self.setGeometry(100, 100, 1000, 1000)
@@ -102,15 +100,15 @@ class NumberSubmitter(QWidget):
                 label.setText("Cube {} location: {}, {}, {}".format(i+1, cube_positions[i][0], cube_positions[i][1], cube_positions[i][2]))
                 i += 1
             
-        self.timer = QTimer(self)
+        self.timer = QTimer(self)  # Timer for updatating the coordinate labels
         self.timer.timeout.connect(update_pos_labels)
-        self.timer.start(1000)
+        self.timer.start(1000)  # Update every 1s
         
         
         # Define pick buttons for each cube found in rostopic
         i = 0
         self.pick_color_buttons = []
-        for cube in self.cube_positions:
+        for cube in cube_positions:
             pick_color_button = QPushButton("Pick cube {}".format(i+1), self)
             pick_color_button.clicked.connect(partial(self.pick_color, i))
             self.pick_color_buttons.append(pick_color_button)
@@ -121,7 +119,7 @@ class NumberSubmitter(QWidget):
         # Define checkboxes for swapping two cubes
         i = 0
         self.checkboxes = []
-        for cube in self.cube_positions:
+        for cube in cube_positions:
             checkbox = QCheckBox("Cube {}".format(i+1), self)
             self.checkboxes.append(checkbox)
             self.checkboxes[i].move(600, 400+40*i)
@@ -162,15 +160,13 @@ class NumberSubmitter(QWidget):
         self.pick_edit_z.clear()
         command = "rosrun ltl_project pick _x:={} _y:={} _z:={} _reset:={} > /dev/null".format(x, y, z, "false")
         subprocess.Popen(command, shell=True, cwd=os.path.expanduser('~/ros'))
-        self.last_picked = -1   # So far coordinates are not updated after manual pick-command
         
         
     # Used to pick up a cube from certain coordinates
     def pick_color(self, cube_index):
-        cube = self.cube_positions[cube_index]
+        cube = cube_positions[cube_index]
         command = "rosrun ltl_project pick _x:={} _y:={} _z:={} _reset:={} > /dev/null".format(cube[0], cube[1], cube[2], "false")
         subprocess.Popen(command, shell=True, cwd=os.path.expanduser('~/ros'))
-        self.last_picked = cube_index   # Update previously picked up cube so place can update its coords
         
 
     def place(self):
@@ -182,15 +178,11 @@ class NumberSubmitter(QWidget):
         self.place_edit_z.clear()
         command = "rosrun ltl_project place _x:={} _y:={} _z:={} _reset:={} > /dev/null".format(x, y, z, "false")
         subprocess.Popen(command, shell=True, cwd=os.path.expanduser('~/ros'))
-        if self.last_picked != -1:
-            self.cube_positions[self.last_picked] = [x, y, z]    # Update cube position after placing
             
             
     def place_to_coords(self, x, y, z):
         command = "rosrun ltl_project place _x:={} _y:={} _z:={} _reset:={} > /dev/null".format(x, y, z, "false")
         subprocess.Popen(command, shell=True, cwd=os.path.expanduser('~/ros'))
-        if self.last_picked != -1:
-            self.cube_positions[self.last_picked] = [x, y, z]    # Update cube position after placing
 
     def build_tower(self):
         place_x = self.tower_edit_x.text()
@@ -199,8 +191,7 @@ class NumberSubmitter(QWidget):
         self.tower_edit_y.clear()
 
         i = 0
-        for cube in self.cube_positions:
-            self.last_picked = i
+        for cube in cube_positions:
             pick_x = float(cube[0])
             pick_y = float(cube[1])
             pick_z = float(cube[2])
@@ -209,7 +200,6 @@ class NumberSubmitter(QWidget):
             place_z = (i + 1) * cube_size - cube_size / 2
             place_command = "rosrun ltl_project place _x:={} _y:={} _z:={} _reset:={} > /dev/null".format(place_x, place_y, place_z, "false")
             subprocess.call(place_command, shell=True, cwd=os.path.expanduser('~/ros'))
-            self.cube_positions[i] = [place_x, place_y, place_z]    # Update cube position after placing
             i += 1
             
     def swap_cubes(self):
@@ -218,8 +208,8 @@ class NumberSubmitter(QWidget):
             if self.checkboxes[i].checkState() == 2:    # Box is checked if its state is 2
                 boxes_ticked.append(i)
         if len(boxes_ticked) == 2:  # Proceed to swap if 2 boxes are ticked
-            cube_1 = self.cube_positions[boxes_ticked[0]]
-            cube_2 = self.cube_positions[boxes_ticked[1]]
+            cube_1 = cube_positions[boxes_ticked[0]]
+            cube_2 = cube_positions[boxes_ticked[1]]
             pick1_x, pick1_y, pick1_z = cube_1[0], cube_1[1], cube_1[2]
             pick2_x, pick2_y, pick2_z = cube_2[0], cube_2[1], cube_2[2]
             self.pick_color(boxes_ticked[0])    # Pick cube 1
